@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuroFisio UNIFESP — Simulado Sistema Nervoso</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --bg2: #111827;
+    --bg3: #1a2236;
+    --card: #141c2e;
+    --border: rgba(100,180,255,0.12);
+    --border2: rgba(100,180,255,0.25);
+    --text: #e8edf5;
+    --text2: #94a8c4;
+    --text3: #5a7190;
+    --accent: #4a9eff;
+    --accent2: #7bb8ff;
+    --gold: #f0b429;
+    --gold2: #ffd166;
+    --green: #34d399;
+    --red: #f87171;
+    --purple: #a78bfa;
+    --teal: #2dd4bf;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* Starfield background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(100,180,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 60%, rgba(100,180,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 15%, rgba(255,255,255,0.25) 0%, transparent 100%),
+      radial-gradient(1px 1px at 75% 45%, rgba(100,180,255,0.35) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 80%, rgba(100,180,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 20% 85%, rgba(255,255,255,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 65% 70%, rgba(100,180,255,0.25) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 3rem 2rem 2rem;
+    text-align: center;
+    border-bottom: 0.5px solid var(--border2);
+    background: linear-gradient(180deg, rgba(10,15,30,0) 0%, rgba(10,15,30,0.8) 100%);
+  }
+
+  .header-badge {
+    display: inline-block;
+    background: rgba(74,158,255,0.1);
+    border: 0.5px solid var(--border2);
+    border-radius: 20px;
+    padding: 4px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 1rem;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  h1 span {
+    color: var(--accent);
+  }
+
+  .subtitle {
+    color: var(--text2);
+    font-size: 1rem;
+    font-weight: 300;
+    margin-bottom: 1.5rem;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+  }
+
+  .stat-pill {
+    background: rgba(74,158,255,0.08);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-size: 13px;
+    color: var(--text2);
+  }
+
+  .stat-pill strong {
+    color: var(--accent2);
+    font-weight: 600;
+  }
+
+  /* Dashboard */
+  #dashboard {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,15,30,0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0.75rem 2rem;
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .dash-item {
+    font-size: 13px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dash-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .dash-dot.correct { background: var(--green); }
+  .dash-dot.wrong { background: var(--red); }
+  .dash-dot.pending { background: var(--text3); }
+
+  #score-display {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--gold2);
+    margin-left: auto;
+  }
+
+  /* Progress bar */
+  #progress-bar-wrap {
+    height: 2px;
+    background: var(--bg3);
+    position: sticky;
+    top: 48px;
+    z-index: 99;
+  }
+
+  #progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--teal));
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+
+  /* Filters */
+  .filters {
+    position: relative;
+    z-index: 10;
+    padding: 1.5rem 2rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .filter-btn {
+    background: transparent;
+    border: 0.5px solid var(--border2);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-family: 'Source Sans 3', sans-serif;
+    font-weight: 600;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .filter-btn:hover, .filter-btn.active {
+    background: rgba(74,158,255,0.15);
+    border-color: var(--accent);
+    color: var(--accent2);
+  }
+
+  /* Main content */
+  main {
+    position: relative;
+    z-index: 10;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 1rem 2rem 4rem;
+  }
+
+  /* Category header */
+  .category-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 2.5rem 0 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .category-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .category-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .category-count {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Question card */
+  .q-card {
+    background: var(--card);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .q-card:hover {
+    border-color: var(--border2);
+  }
+
+  .q-card.answered-correct {
+    border-color: rgba(52,211,153,0.3);
+  }
+
+  .q-card.answered-wrong {
+    border-color: rgba(248,113,113,0.3);
+  }
+
+  .q-header {
+    padding: 1rem 1.25rem;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .q-number {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 1px;
+    flex-shrink: 0;
+    margin-top: 3px;
+    min-width: 28px;
+  }
+
+  .q-text {
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.6;
+    flex: 1;
+  }
+
+  .q-status {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+    border: 1.5px solid var(--border2);
+    transition: all 0.3s;
+  }
+
+  .q-card.answered-correct .q-status {
+    background: var(--green);
+    border-color: var(--green);
+  }
+
+  .q-card.answered-wrong .q-status {
+    background: var(--red);
+    border-color: var(--red);
+  }
+
+  /* Options */
+  .q-options {
+    padding: 0 1.25rem 1.25rem 3.5rem;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .q-card.open .q-options {
+    display: flex;
+  }
+
+  .q-card.open .q-header {
+    border-bottom: 0.5px solid var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .opt-btn {
+    background: transparent;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 14px;
+    font-family: 'Source Sans 3', sans-serif;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.5;
+  }
+
+  .opt-btn:hover:not(:disabled) {
+    background: rgba(74,158,255,0.08);
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .opt-btn:disabled { cursor: default; }
+
+  .opt-btn.selected-correct {
+    background: rgba(52,211,153,0.1);
+    border-color: rgba(52,211,153,0.5);
+    color: var(--green);
+  }
+
+  .opt-btn.selected-wrong {
+    background: rgba(248,113,113,0.1);
+    border-color: rgba(248,113,113,0.5);
+    color: var(--red);
+  }
+
+  .opt-btn.reveal-correct {
+    background: rgba(52,211,153,0.06);
+    border-color: rgba(52,211,153,0.3);
+    color: rgba(52,211,153,0.7);
+  }
+
+  .opt-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text3);
+    flex-shrink: 0;
+    margin-top: 1px;
+    min-width: 18px;
+  }
+
+  .opt-btn.selected-correct .opt-label { color: var(--green); }
+  .opt-btn.selected-wrong .opt-label { color: var(--red); }
+  .opt-btn.reveal-correct .opt-label { color: rgba(52,211,153,0.7); }
+
+  /* Explanation */
+  .explanation {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: rgba(74,158,255,0.05);
+    border: 0.5px solid rgba(74,158,255,0.15);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.65;
+    display: none;
+  }
+
+  .q-card.answered .explanation {
+    display: block;
+  }
+
+  .explanation strong {
+    color: var(--accent2);
+    font-weight: 600;
+  }
+
+  /* Results panel */
+  #results-panel {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5,8,15,0.85);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #results-panel.show { display: flex; }
+
+  .results-box {
+    background: var(--bg2);
+    border: 0.5px solid var(--border2);
+    border-radius: 16px;
+    padding: 2.5rem;
+    max-width: 460px;
+    width: 90%;
+    text-align: center;
+  }
+
+  .results-score {
+    font-family: 'Playfair Display', serif;
+    font-size: 5rem;
+    font-weight: 700;
+    color: var(--gold2);
+    line-height: 1;
+    margin: 0.5rem 0;
+  }
+
+  .results-label {
+    font-size: 13px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+  }
+
+  .results-breakdown {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin: 1.5rem 0;
+  }
+
+  .rb-item {
+    text-align: center;
+  }
+
+  .rb-num {
+    font-size: 1.8rem;
+    font-weight: 600;
+    font-family: 'Playfair Display', serif;
+  }
+
+  .rb-num.g { color: var(--green); }
+  .rb-num.r { color: var(--red); }
+
+  .rb-label {
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .grade-msg {
+    font-size: 15px;
+    color: var(--text2);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+
+  .restart-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 32px;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .restart-btn:hover { opacity: 0.85; }
+
+  /* Finish button */
+  #finish-btn {
+    display: block;
+    margin: 2rem auto;
+    background: linear-gradient(135deg, var(--accent), var(--teal));
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 48px;
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  #finish-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 3px; }
+
+  .chevron {
+    margin-left: auto;
+    color: var(--text3);
+    font-size: 14px;
+    transition: transform 0.25s;
+    flex-shrink: 0;
+  }
+
+  .q-card.open .chevron { transform: rotate(180deg); }
+
+  @media (max-width: 600px) {
+    header { padding: 2rem 1rem 1.5rem; }
+    main { padding: 0.5rem 1rem 3rem; }
+    .filters { padding: 1rem; }
+    #dashboard { padding: 0.5rem 1rem; gap: 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-badge">UNIFESP · Fisioterapia</div>
+  <h1>Neuro<span>Fisio</span></h1>
+  <p class="subtitle">Simulado — Módulo Sistema Nervoso · Dos Tecidos aos Sistemas</p>
+  <div class="stats-row">
+    <div class="stat-pill"><strong>100</strong> questões</div>
+    <div class="stat-pill"><strong>7</strong> tópicos</div>
+    <div class="stat-pill">Nível <strong>universitário</strong></div>
+    <div class="stat-pill">Baseado em <strong>Netter</strong></div>
+  </div>
+</header>
+
+<div id="dashboard">
+  <div class="dash-item"><span class="dash-dot correct"></span><span id="cnt-correct">0</span> corretas</div>
+  <div class="dash-item"><span class="dash-dot wrong"></span><span id="cnt-wrong">0</span> erradas</div>
+  <div class="dash-item"><span class="dash-dot pending"></span><span id="cnt-pending">100</span> pendentes</div>
+  <div id="score-display">0%</div>
+</div>
+
+<div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+
+<div class="filters">
+  <button class="filter-btn active" onclick="filterCategory('all', this)">Todas</button>
+  <button class="filter-btn" onclick="filterCategory('somatica', this)">Sensib. Somática</button>
+  <button class="filter-btn" onclick="filterCategory('especial', this)">Sensib. Especial</button>
+  <button class="filter-btn" onclick="filterCategory('emocoes', this)">Emoções</button>
+  <button class="filter-btn" onclick="filterCategory('movimento', this)">Controle Motor</button>
+  <button class="filter-btn" onclick="filterCategory('cognitivo', this)">Funções Cognitivas</button>
+  <button class="filter-btn" onclick="filterCategory('superiores', this)">Funções Superiores</button>
+  <button class="filter-btn" onclick="filterCategory('fala', this)">Fala</button>
+</div>
+
+<main id="main-content"></main>
+
+<button id="finish-btn" onclick="showResults()">Finalizar Simulado</button>
+
+<div id="results-panel">
+  <div class="results-box">
+    <div style="font-size:13px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:0.5rem">Resultado Final</div>
+    <div class="results-score" id="final-pct">0%</div>
+    <div class="results-label">de aproveitamento</div>
+    <div class="results-breakdown">
+      <div class="rb-item"><div class="rb-num g" id="final-c">0</div><div class="rb-label">Corretas</div></div>
+      <div style="width:1px;background:var(--border)"></div>
+      <div class="rb-item"><div class="rb-num r" id="final-w">0</div><div class="rb-label">Erradas</div></div>
+      <div style="width:1px;background:var(--border)"></div>
+      <div class="rb-item"><div class="rb-num" style="color:var(--text2)" id="final-p">0</div><div class="rb-label">Puladas</div></div>
+    </div>
+    <div class="grade-msg" id="grade-msg"></div>
+    <button class="restart-btn" onclick="restart()">Reiniciar Simulado</button>
+  </div>
+</div>
+
+<script>
+const categories = [
+  {
+    id: 'somatica',
+    title: 'Sensibilidade Somática',
+    icon: '◎',
+    iconBg: 'rgba(74,158,255,0.15)',
+    color: '#4a9eff',
+    questions: [
+      {
+        q: "Qual receptor cutâneo é responsável pela detecção de pressão sustentada e distorção da pele, sendo de adaptação lenta do tipo II?",
+        opts: ["Corpúsculo de Meissner","Disco de Merkel","Corpúsculo de Pacini","Terminação de Ruffini"],
+        correct: 3,
+        exp: "<strong>Terminações de Ruffini</strong> são mecanorreceptores de adaptação lenta tipo II (RA II), localizados na derme profunda, sensíveis à tração e distorção sustentada da pele. Detectam estiramento cutâneo e contribuem para a propriocepção da posição dos dedos."
+      },
+      {
+        q: "A via espinotalâmica lateral conduz principalmente qual modalidade sensorial?",
+        opts: ["Propriocepção consciente e discriminação tátil fina","Dor e temperatura","Vibração e tato discriminativo","Pressão profunda inconsciente"],
+        correct: 1,
+        exp: "<strong>A via espinotalâmica lateral</strong> (anterolateral) transmite dor e temperatura. Os neurônios de 1ª ordem entram pelo corno dorsal, fazem sinapse no corno posterior, cruzam na comissura branca anterior e sobem pelo funículo anterolateral contralateral até o tálamo (núcleo VPL)."
+      },
+      {
+        q: "Em qual coluna da medula espinal trafegam os axônios da via lemniscal medial antes de fazer sinapse nos núcleos grácil e cuneiforme?",
+        opts: ["Funículo anterior","Funículo lateral","Funículo posterior (coluna dorsal)","Funículo anterolateral"],
+        correct: 2,
+        exp: "<strong>O funículo posterior</strong> (colunas dorsais) contém os axônios de 1ª ordem da via lemniscal. As fibras dos membros inferiores formam o fascículo grácil (coluna de Goll) e as dos superiores, o fascículo cuneiforme (coluna de Burdach). Fazem sinapse nos núcleos homônimos do bulbo."
+      },
+      {
+        q: "O Corpúsculo de Meissner é classificado como qual tipo de receptor quanto à adaptação, e qual sua função primária?",
+        opts: ["Adaptação lenta tipo I; pressão sustentada","Adaptação rápida; detecção de velocidade e textura fina","Adaptação rápida; vibração de alta frequência (200–300 Hz)","Adaptação lenta tipo II; distorção cutânea"],
+        correct: 1,
+        exp: "<strong>O Corpúsculo de Meissner</strong> é de adaptação rápida (RA I), localizado nas papilas dérmicas da pele glabra. Detecta movimento suave sobre a pele, velocidade e textura fina, sendo essencial para a manipulação de objetos. Responde especialmente a frequências de 2–40 Hz."
+      },
+      {
+        q: "Qual núcleo talâmico recebe as informações de sensibilidade somática geral (tato, propriocepção, dor, temperatura) antes de projetá-las ao córtex somatossensorial primário?",
+        opts: ["Núcleo ventral anterior (VA)","Núcleo centromediano","Núcleo ventral póstero-lateral (VPL)","Núcleo pulvinar"],
+        correct: 2,
+        exp: "<strong>O núcleo VPL (ventral póstero-lateral)</strong> do tálamo recebe aferências do lemnisco medial e do trato espinotalâmico, representando o corpo contralateral (exceto face, que vai ao VPM). Projeta somatotopicamente para o giro pós-central (áreas 3a, 3b, 1, 2 de Brodmann)."
+      },
+      {
+        q: "A dor referida tem base neuroanatômica explicada pelo conceito de:",
+        opts: ["Plasticidade sináptica homosynáptica","Convergência viscerossomática no corno posterior da medula","Inibição recíproca de interneurônios inibitórios","Potenciação de longa duração no córtex cingulado"],
+        correct: 1,
+        exp: "<strong>A convergência viscerossomática</strong> explica a dor referida: neurônios viscerais e somáticos fazem sinapse no mesmo neurônio de 2ª ordem no corno posterior. O SNC interpreta erroneamente o sinal como originado na região somática. Ex.: dor cardíaca referida ao braço esquerdo (dermátomos C8–T5)."
+      },
+      {
+        q: "Qual é o principal neurotransmissor excitatório liberado pelos neurônios aferentes primários de dor (fibras Aδ e C) no corno posterior da medula?",
+        opts: ["GABA e glicina","Dopamina e serotonina","Glutamato e substância P","Acetilcolina e noradrenalina"],
+        correct: 2,
+        exp: "<strong>Glutamato</strong> (age em receptores AMPA/NMDA) e <strong>substância P</strong> (neuropeptídeo que age em receptores NK1) são os principais transmissores excitatórios das fibras nociceptivas. A substância P amplifica e prolonga o sinal doloroso, contribuindo para a sensibilização central."
+      },
+      {
+        q: "A teoria do controle de portão (gate control theory) de Melzack e Wall propõe que a ativação de quais fibras fecha o portão para a dor?",
+        opts: ["Fibras C e Aδ","Fibras Aβ de grande diâmetro","Fibras autonômicas pré-ganglionares","Fibras eferentes gama"],
+        correct: 1,
+        exp: "<strong>A ativação de fibras Aβ</strong> (tato, pressão, vibração) estimula interneurônios inibitórios (células SG – substância gelatinosa) no corno posterior, que inibem a transmissão das fibras nociceptivas Aδ e C. Essa é a base neurofisiológica da TENS e da massagem para analgesia."
+      },
+      {
+        q: "A hiperalgesia primária que ocorre após lesão tecidual periférica é causada principalmente por:",
+        opts: ["Sensibilização central no tálamo","Sensibilização periférica dos nociceptores por mediadores inflamatórios (prostaglandinas, bradicinina, histamina)","Perda de interneurônios inibitórios medulares","Ativação de receptores NMDA medulares"],
+        correct: 1,
+        exp: "<strong>A sensibilização periférica</strong> ocorre quando mediadores inflamatórios (PGE2, bradicinina, IL-1β, NGF) reduzem o limiar de ativação dos nociceptores, especialmente canais TRPV1 e Nav1.8. Resulta em hiperalgesia no local da lesão (primária), diferente da hiperalgesia secundária (sensibilização central)."
+      },
+      {
+        q: "No dermátomo C6, qual região cutânea é representada e qual é sua relevância clínica para a fisioterapia?",
+        opts: ["Região axilar; avaliação do nervo musculocutâneo","Polegar e indicador; avaliação de hérnias discais C5-C6 e radiculopatias","Região ulnar da mão; lesões do nervo ulnar","Região peitoral; avaliação do plexo braquial superior"],
+        correct: 1,
+        exp: "<strong>O dermátomo C6</strong> cobre o polegar, indicador e face lateral do antebraço. Herniações em C5–C6 comprometem esse dermátomo, causando parestesias nessa distribuição. Clinicamente, o fisioterapeuta testa a sensibilidade com toque suave e a força do bíceps (reflexo miotático C5–C6)."
+      },
+      {
+        q: "Qual via ascendente, localizada no funículo posterior, transmite propriocepção inconsciente dos membros inferiores diretamente ao cerebelo sem passar pelo tálamo?",
+        opts: ["Trato espinotalâmico anterior","Trato espinocerebelar posterior (de Flechsig)","Via lemniscal medial","Trato espinorreticular"],
+        correct: 1,
+        exp: "<strong>O trato espinocerebelar posterior</strong> origina-se no núcleo de Clarke (C8–L2), ipsilateral, e sobe pelo funículo lateral posterior até o cerebelo via pedúnculo cerebelar inferior. Transmite propriocepção inconsciente (fusos musculares, órgãos de Golgi) e é essencial para a coordenação motora."
+      },
+      {
+        q: "Na Síndrome de Brown-Séquard (hemissecção medular), qual é o padrão esperado de déficits sensitivos?",
+        opts: ["Perda bilateral de todas as modalidades abaixo da lesão","Perda de propriocepção e tato discriminativo ipsilateral + perda de dor e temperatura contralateral","Perda exclusiva de dor bilateral com preservação do tato","Perda de tato grosseiro bilateral com preservação da propriocepção"],
+        correct: 1,
+        exp: "Na <strong>hemissecção medular</strong>, as colunas dorsais (propriocepção, tato fino) não cruzam na medula, então há perda ipsilateral. O trato espinotalâmico já cruzou, então há perda de dor e temperatura contralateral. Esse padrão dissociado é patognomônico e relevante para avaliação neurológica em fisioterapia."
+      },
+      {
+        q: "Quais são as áreas do córtex somatossensorial primário segundo Brodmann e quais modalidades predominam em cada uma?",
+        opts: ["Área 4 (propriocepção profunda), área 6 (tato), área 8 (dor)","Áreas 3a (propriocepção), 3b (tato e temperatura), 1 (textura), 2 (tamanho e forma)","Área 17 (tato), área 18 (temperatura), área 19 (dor)","Áreas 44 e 45 (discriminação tátil), área 22 (temperatura)"],
+        correct: 1,
+        exp: "<strong>O córtex somatossensorial primário</strong> (giro pós-central) organiza-se em: área 3a → propriocepção (fusos musculares via VPL); área 3b → tato e temperatura; área 1 → textura; área 2 → tamanho, forma e pressão. A hierarquia de processamento vai de 3a/3b para 1 e 2, culminando no córtex parietal posterior (áreas 5 e 7)."
+      },
+      {
+        q: "O teste de discriminação de dois pontos avalia primariamente qual via e qual receptor cutâneo?",
+        opts: ["Via espinotalâmica; corpúsculo de Pacini","Via lemniscal medial; discos de Merkel (SAI)","Via espinocerebelar; terminações de Ruffini","Via trigeminotalâmica; corpúsculos de Meissner"],
+        correct: 1,
+        exp: "<strong>A discriminação de dois pontos</strong> testa a via lemniscal medial e depende principalmente dos <strong>discos de Merkel</strong> (adaptação lenta tipo I – SAI), que têm alta resolução espacial. A distância mínima detectável é menor nas polpas dos dedos (~2–3 mm) e maior no dorso (~40 mm), refletindo a densidade de receptores e a representação cortical."
+      },
+      {
+        q: "Qual é a função dos interneurônios inibitórios (células de Renshaw) na modulação da sensibilidade e do tônus muscular?",
+        opts: ["Facilitam sinapticamente os neurônios motores alfa contralaterais","Inibem por retroalimentação os neurônios motores alfa e gama ipsilaterais","Transmitem propriocepção inconsciente ao cerebelo","Modulam a percepção de dor no corno posterior"],
+        correct: 1,
+        exp: "<strong>As células de Renshaw</strong> são interneurônios inibitórios que recebem colaterais dos axônios motores alfa e inibem via glicina o próprio neurônio motor (inibição recorrente). Isso protege contra contração excessiva e modula o ganho do sistema motor. Também inibem interneurônios Ia, influenciando indiretamente a sensibilidade proprioceptiva."
+      }
+    ]
+  },
+  {
+    id: 'especial',
+    title: 'Sensibilidade Especial',
+    icon: '◈',
+    iconBg: 'rgba(167,139,250,0.15)',
+    color: '#a78bfa',
+    questions: [
+      {
+        q: "Qual estrutura do ouvido interno transforma energia mecânica em potenciais de ação elétricos, sendo essencial para a audição?",
+        opts: ["Utrículo e sáculo","Canais semicirculares","Órgão de Corti (coclear)","Membrana do tímpano"],
+        correct: 2,
+        exp: "<strong>O órgão de Corti</strong>, localizado na membrana basilar da cóclea, contém células ciliadas internas (IHC) e externas (OHC). A deflexão dos estereocílios abre canais de K⁺, gerando despolarização nas IHC que ativam o nervo coclear (NC VIII). As OHC amplificam o sinal mecanicamente."
+      },
+      {
+        q: "O sistema vestibular detecta aceleração linear através de qual estrutura e por qual mecanismo?",
+        opts: ["Canais semicirculares; movimento da endolinfa","Utrículo e sáculo; deslocamento dos otólitos sobre as máculas","Órgão de Corti; deflexão da membrana tectória","Gânglio espiral; potenciais de receptores"],
+        correct: 1,
+        exp: "<strong>O utrículo e o sáculo</strong> contêm as máculas, dotadas de células ciliadas cobertas por membrana otolítica com cristais de carbonato de cálcio (otólitos). A aceleração linear (e gravidade) desloca os otólitos, curvando os estereocílios. O utrículo detecta aceleração horizontal; o sáculo, vertical."
+      },
+      {
+        q: "A topografia retiniana projeta-se ao córtex visual primário (área 17 de Brodmann) de maneira organizada. Qual região da retina tem maior representação cortical no polo occipital?",
+        opts: ["Periferia retiniana temporal","Fóvea central","Ora serrata","Disco óptico (ponto cego)"],
+        correct: 1,
+        exp: "<strong>A fóvea central</strong>, rica em cones (6–7 milhões), tem amplíssima representação no córtex estriado (V1) — fenômeno da magnificação cortical. Embora pequena anatomicamente, ocupa grande porção do polo occipital, permitindo acuidade visual máxima e percepção de cor refinada."
+      },
+      {
+        q: "Qual é o papel do nervo trigêmeo (NC V) na sensibilidade especial, e quais são seus três ramos principais?",
+        opts: ["Gustação; ramos olfatório, óptico e palatino","Sensibilidade somática da face; ramos oftálmico (V1), maxilar (V2) e mandibular (V3)","Equilíbrio; ramos coclear, vestibular e timpânico","Propriocepção mandibular; ramos auriculotemporal, lingual e alveolar"],
+        correct: 1,
+        exp: "O <strong>nervo trigêmeo (NC V)</strong> conduz sensibilidade somática (tato, dor, temperatura, propriocepção) da face, boca, seios paranasais e dura-máter. Seus três ramos — <strong>V1 (oftálmico)</strong>, <strong>V2 (maxilar)</strong> e <strong>V3 (mandibular)</strong> — convergem no gânglio trigeminal (de Gasser), fazendo sinapse no núcleo sensorial principal e no trato espinal do trigêmeo."
+      },
+      {
+        q: "Na via olfatória, os axônios do nervo olfatório (NC I) fazem sinapse inicialmente em qual estrutura antes de alcançar o córtex piriforme?",
+        opts: ["Tálamo (núcleo mediodorsal)","Hipocampo","Bulbo olfatório","Amígdala basolateral"],
+        correct: 2,
+        exp: "<strong>O bulbo olfatório</strong> recebe os axônios dos neurônios receptores olfatórios (localizados no epitélio olfatório), fazendo sinapse nos glomérulos olfatórios. Células mitrais e tufosas transmitem o sinal ao córtex piriforme (olfatório primário) diretamente, sem passar pelo tálamo — única via sensorial com acesso direto ao telencéfalo."
+      },
+      {
+        q: "A percepção da gustação (sabor) está associada ao NC VII, IX e X. Qual nervo conduz a gustação dos dois terços anteriores da língua?",
+        opts: ["NC IX (glossofaríngeo)","NC X (vago)","NC VII (facial) — via nervo corda do tímpano","NC V (trigêmeo) — via nervo lingual"],
+        correct: 2,
+        exp: "A <strong>corda do tímpano</strong>, ramo do NC VII, conduz gustação dos 2/3 anteriores da língua e converge no núcleo do trato solitário (NTS). O NC IX (glossofaríngeo) conduz o 1/3 posterior da língua, e o NC X conduz a epiglote e esôfago superior. Todos convergem no NTS no tronco encefálico."
+      },
+      {
+        q: "O campo visual nasal de cada olho é representado no córtex visual do hemisfério ipsilateral ou contralateral?",
+        opts: ["Ipsilateral, pois as fibras nasais não cruzam no quiasma","Contralateral, pois as fibras nasais cruzam no quiasma óptico","Bilateralmente, sem predileção hemisférica","No colículo superior, sem projeção cortical direta"],
+        correct: 1,
+        exp: "<strong>As fibras da retina nasal cruzam no quiasma óptico</strong>, enquanto as temporais seguem ipsilateralmente. Portanto, o campo visual esquerdo de ambos os olhos projeta-se ao córtex visual direito (V1) e vice-versa. Uma lesão no quiasma (ex.: adenoma hipofisário) causa hemianopsia bitemporal por atingir as fibras nasais cruzantes."
+      },
+      {
+        q: "Qual é a função das células ganglionares fotossensíveis da retina (ipRGC) que expressam melanopsina?",
+        opts: ["Percepção da cor e acuidade visual central","Regulação do ritmo circadiano e reflexo pupilar fotomotor (via núcleo supraquiasmático e núcleo de Edinger-Westphal)","Detecção de movimento periférico","Adaptação ao escuro via bastonetes"],
+        correct: 1,
+        exp: "<strong>As ipRGC</strong> (intrinsically photosensitive retinal ganglion cells) expressam melanopsina e respondem à luz azul (~480 nm). Projetam ao <strong>núcleo supraquiasmático</strong> (relógio circadiano), ao <strong>núcleo de Edinger-Westphal</strong> (reflexo pupilar) e ao colículo superior. São independentes de bastonetes e cones para essas funções não-visuais."
+      },
+      {
+        q: "Os canais semicirculares detectam qual tipo de aceleração e como isso ocorre?",
+        opts: ["Aceleração linear; deslocamento dos otólitos","Aceleração angular (rotacional); deflexão da cúpula pela endolinfa","Aceleração gravitacional; tensão na membrana basilar","Pressão hidrostática; deformação da janela oval"],
+        correct: 1,
+        exp: "<strong>Os três canais semicirculares</strong> (anterior, posterior, lateral) formam pares funcionais perpendiculares. A aceleração angular move a endolinfa, que deflecte a <strong>cúpula</strong> na ampola, curvando os estereocílios das células ciliadas da crista ampular. Isso gera potenciais de ação no NC VIII (ramo vestibular)."
+      },
+      {
+        q: "Na avaliação clínica do nervo óptico (NC II), o teste de reflexo fotomotor direto e consensual avalia a integridade de qual arco reflexo?",
+        opts: ["NC II (aferente) → teto do mesencéfalo → NC III (eferente) → músculo esfíncter da pupila","NC V (aferente) → tálamo → NC VII (eferente) → orbicular do olho","NC II (aferente) → hipotálamo → NC IV (eferente) → músculo oblíquo superior","NC III (aferente) → núcleo geniculado lateral → NC II (eferente) → retina"],
+        correct: 0,
+        exp: "<strong>O reflexo fotomotor</strong>: luz → NC II → núcleo pretectal (mesencéfalo) → bilateral ao núcleo de Edinger-Westphal → NC III parassimpático → gânglio ciliar → esfíncter da pupila. Lesão do NC II elimina direto e consensual do olho afetado. Lesão do NC III elimina direto e consensual ao iluminar qualquer olho (a pupila afetada não constrange)."
+      }
+    ]
+  },
+  {
+    id: 'emocoes',
+    title: 'Emoções e Sistema Límbico',
+    icon: '♡',
+    iconBg: 'rgba(248,113,113,0.15)',
+    color: '#f87171',
+    questions: [
+      {
+        q: "O circuito de Papez, proposto como substrato anatômico das emoções, conecta quais estruturas em ordem?",
+        opts: ["Amígdala → hipocampo → tálamo anterior → córtex cingulado → amígdala","Hipocampo → fórnix → corpos mamilares → tálamo anterior → córtex cingulado → hipocampo","Córtex pré-frontal → estriado → pálido → tálamo mediodorsal → córtex pré-frontal","Amígdala → estriado ventral → hipotálamo lateral → tronco encefálico"],
+        correct: 1,
+        exp: "<strong>O circuito de Papez</strong>: hipocampo → fórnix → corpos mamilares → tálamo anterior (feixe mamilotalâmico) → giro cingulado → córtex entorrinal → hipocampo. Proposto em 1937 como base da experiência emocional e memória. Hoje, inclui-se a amígdala como componente central para o processamento emocional."
+      },
+      {
+        q: "Qual é a função principal da amígdala no processamento emocional, especialmente em relação ao medo?",
+        opts: ["Supressão cortical das respostas emocionais","Detecção de ameaças, condicionamento do medo e coordenação de respostas autonômicas e endócrinas de defesa","Regulação do sono REM e consolidação da memória declarativa","Integração da percepção olfatória com a memória episódica"],
+        correct: 1,
+        exp: "<strong>A amígdala</strong> (especialmente o núcleo basolateral) detecta estímulos aversivos, condiciona respostas de medo (via LTP) e projeta para o hipotálamo (respostas autonômicas), o tronco encefálico (respostas motoras defensivas) e o núcleo central (liberação de CRH/cortisol). Lesões bilaterais causam a síndrome de Klüver-Bucy (docilidade, hiperoralidade)."
+      },
+      {
+        q: "O hipocampo é essencial para qual tipo de memória e qual é sua relação com o processo de consolidação?",
+        opts: ["Memória procedural; atua durante o sono NREM","Memória declarativa (episódica e semântica); consolida memórias de curto para longo prazo durante o sono","Memória emocional implícita; armazena traços de condicionamento","Memória de trabalho; mantém informações por segundos a minutos"],
+        correct: 1,
+        exp: "<strong>O hipocampo</strong> é indispensável para a formação de novas memórias declarativas (episódicas e semânticas). Durante o sono, ocorre a reativação hipocampal (replay) e a transferência para o neocórtex (consolidação sistêmica). Lesões bilaterais (como no caso H.M.) causam amnésia anterógrada severa mas preservam memória procedural."
+      },
+      {
+        q: "O córtex pré-frontal ventromedial (vmPFC) desempenha qual papel na regulação emocional?",
+        opts: ["Planejamento motor e iniciação do movimento voluntário","Extinção do medo condicionado, tomada de decisão emocional e controle top-down da amígdala","Processamento visual de alto nível e reconhecimento de faces","Regulação do ciclo sono-vigília via projeções para o núcleo supraquiasmático"],
+        correct: 1,
+        exp: "<strong>O vmPFC</strong> inibe a amígdala via projeções GABAérgicas, permitindo a extinção do medo e a regulação emocional. Danos ao vmPFC (ex.: lesão de Phineas Gage) comprometem a tomada de decisões baseada em emoções (hipótese do marcador somático de Damasio). É alvo terapêutico em TEPT e ansiedade."
+      },
+      {
+        q: "O sistema dopaminérgico mesolímbico, crucial para motivação e recompensa, conecta qual área tegmental ao núcleo accumbens?",
+        opts: ["Área tegmental ventral (VTA) ao núcleo accumbens (estriado ventral)","Substância negra pars compacta ao núcleo caudado","Locus coeruleus ao hipocampo","Núcleos da rafe ao córtex pré-frontal dorsolateral"],
+        correct: 0,
+        exp: "<strong>A via mesolímbica</strong>: neurônios dopaminérgicos da <strong>VTA</strong> projetam ao <strong>núcleo accumbens</strong>, hipocampo e amígdala. É o principal substrato de recompensa, motivação e adicção. O núcleo accumbens (core e shell) integra sinais corticais, límbicos e dopaminérgicos para orientar comportamentos motivados."
+      },
+      {
+        q: "Qual neurotransmissor é predominantemente associado ao humor e cujas alterações estão relacionadas à depressão maior, sendo alvo dos antidepressivos ISRS?",
+        opts: ["Dopamina","Glutamato","Serotonina (5-HT)","Noradrenalina"],
+        correct: 2,
+        exp: "<strong>A serotonina</strong>, sintetizada nos núcleos da rafe (tronco encefálico), projeta-se difusamente para o córtex, hipocampo, amígdala e gânglios da base. Sua deficiência está associada à depressão, ansiedade e TOC. Os <strong>ISRS</strong> bloqueiam o transportador SERT, aumentando a disponibilidade sináptica de 5-HT. Fisioterapia e exercício também elevam 5-HT."
+      },
+      {
+        q: "Na resposta ao estresse, o eixo HPA (hipotálamo-pituitária-adrenal) é ativado pela liberação de CRH no hipotálamo paraventricular, levando à liberação de qual hormônio no córtex adrenal?",
+        opts: ["Adrenalina (epinefrina)","Cortisol","Aldosterona","Testosterona"],
+        correct: 1,
+        exp: "<strong>O eixo HPA</strong>: estresse → hipotálamo (CRH) → adenohipófise (ACTH) → córtex adrenal → <strong>cortisol</strong>. O cortisol mobiliza energia, suprime o sistema imune e retroalimenta negativamente o hipotálamo/hipófise. Estresse crônico com hipercortisolismo causa atrofia hipocampal, comprometendo memória e regulação emocional."
+      },
+      {
+        q: "A empatia e o reconhecimento de emoções alheias envolvem predominantemente qual sistema neuronal, descrito também como base para a aprendizagem motora por observação?",
+        opts: ["Sistema de neurônios-espelho (áreas F5, PF e IFG)","Sistema noradrenérgico do locus coeruleus","Circuito fronto-cerebelar","Sistema colinérgico basal de Meynert"],
+        correct: 0,
+        exp: "<strong>Os neurônios-espelho</strong>, descobertos no macaco (área F5, homóloga à área 44 humana) e inferidos no humano via fMRI (áreas IFG e lobo parietal inferior), disparam tanto ao executar quanto ao observar ações. São propostos como substrato para imitação, empatia e aprendizagem motora — relevantes para a reabilitação neurológica baseada em observação de movimento."
+      },
+      {
+        q: "A anedonia, sintoma central da depressão, está relacionada à hipofunção de qual circuito?",
+        opts: ["Circuito corticoespinal","Via dopaminérgica mesocortical e mesolímbica (recompensa)","Via serotonérgica bulboespinal (modulação da dor)","Circuito cerebelo-talâmico-cortical"],
+        correct: 1,
+        exp: "<strong>A anedonia</strong> (incapacidade de sentir prazer) correlaciona-se com hipofunção dopaminérgica na <strong>via mesolímbica</strong> (VTA → NAcc) e <strong>mesocortical</strong> (VTA → PFC). Estudos de neuroimagem mostram redução da atividade do núcleo accumbens em resposta a recompensas em pacientes deprimidos. O exercício físico, via dopamina e serotonina, tem efeito antidepressivo comprovado."
+      },
+      {
+        q: "Qual estrutura é considerada o 'marcador de novidade' do sistema límbico e dispara preferencialmente quando o animal entra em ambiente desconhecido?",
+        opts: ["Núcleo accumbens","Hipocampo (células de lugar e de grade)","Corpo mamilar","Septo medial"],
+        correct: 1,
+        exp: "<strong>O hipocampo</strong> contém células de lugar (place cells – Nobel 2014, O'Keefe et al.) que formam mapas cognitivos espaciais. Quando o animal entra em ambiente novo, essas células disparam em padrão distinto (remapping), sinalizando novidade. O hipocampo detecta discrepância entre expectativa e realidade, sendo essencial para orientação e memória contextual."
+      },
+      {
+        q: "O córtex insular anterior está envolvido no processamento de qual aspecto emocional-corporal?",
+        opts: ["Planejamento motor da linguagem expressiva","Introspecção do estado corporal (interocepção), nojo visceral e experiência consciente da dor","Regulação autonômica exclusivamente cardíaca","Processamento de estímulos auditivos e memória musical"],
+        correct: 1,
+        exp: "<strong>O córtex insular anterior</strong> integra sinais interoceptivos (batimentos cardíacos, temperatura interna, fome) e os traduz em estados afetivos conscientes (sentimentos). É ativado pelo nojo, dor empática e estados emocionais viscerais. Antonio Damasio o relaciona à 'consciência do eu' e ao marcador somático das emoções."
+      },
+      {
+        q: "Em pacientes com lesão pré-frontal dorsolateral (DLPFC), qual déficit emocional-cognitivo é tipicamente observado?",
+        opts: ["Hiperatividade emocional e impulsividade","Comprometimento da memória de trabalho e da regulação cognitiva das emoções (controle executivo)","Amnésia retrógrada severa","Perda da percepção de dor"],
+        correct: 1,
+        exp: "<strong>O DLPFC</strong> (áreas 9 e 46) suporta a memória de trabalho e o controle cognitivo de emoções (regulação descendente). Lesões causam dificuldade em manter informações ativas, déficit no planejamento e redução do controle executivo sobre respostas emocionais. É envolvido também na depressão, sendo alvo de TMS terapêutica."
+      }
+    ]
+  },
+  {
+    id: 'movimento',
+    title: 'Controle de Movimento',
+    icon: '⊕',
+    iconBg: 'rgba(52,211,153,0.15)',
+    color: '#34d399',
+    questions: [
+      {
+        q: "O reflexo miotático (de estiramento) é mediado por qual arco reflexo e qual é seu substrato neural básico?",
+        opts: ["Órgão de Golgi → fibra Ib → interneurônio inibitório → neurônio alfa","Fuso neuromuscular (fibras Ia) → neurônio alfa ipsilateral monossinapticamente","Fibra Aδ → interneurônio excitatório → neurônio alfa contralateral","Corpúsculos de Ruffini → fibra Aβ → neurônio alfa via colaterais espinais"],
+        correct: 1,
+        exp: "<strong>O reflexo miotático</strong>: estiramento do músculo ativa os fusos neuromusculares → fibras aferentes Ia → sinapse direta (monossináptica) no neurônio motor alfa homônimo → contração muscular reflexa. Exemplo: reflexo patelar (L3–L4). As fibras Ia também fazem inibição recíproca do músculo antagonista via interneurônio Ia."
+      },
+      {
+        q: "O Órgão Tendinoso de Golgi (OTG) detecta qual parâmetro mecânico e que efeito produz no neurônio motor?",
+        opts: ["Comprimento muscular; excitação do alfa ipsilateral","Tensão muscular (força); inibição autogênica do alfa ipsilateral via fibra Ib e interneurônio inibitório","Velocidade de contração; facilitação do gama contralateral","Temperatura muscular; supressão do arco reflexo espinal"],
+        correct: 1,
+        exp: "<strong>O OTG</strong> localiza-se na junção miotendínea, ativado por força muscular (ativa e passiva). Via fibras aferentes <strong>Ib</strong> → interneurônio inibitório (inibição de Ib) → inibição do alfa ipsilateral (inibição autogênica) e excitação do antagonista. Protege o tecido de ruptura por excesso de tensão. Relevante na fisioterapia: facilitação por pressão sobre tendão."
+      },
+      {
+        q: "Na via piramidal (trato corticoespinal lateral), onde ocorre a decussação dos axônios na maioria das pessoas?",
+        opts: ["No giro pré-central do córtex motor primário","Na cápsula interna","Na pirâmide bulbar (decussação das pirâmides, no bulbo-medula espinal)","No funículo lateral da medula torácica"],
+        correct: 2,
+        exp: "<strong>A decussação das pirâmides</strong> ocorre na junção bulboespinal, onde ~85–90% das fibras do trato corticoespinal cruzam para o funículo lateral contralateral (trato corticoespinal lateral). As fibras não cruzadas formam o trato corticoespinal anterior (ventral). Isso explica por que lesões corticais causam déficit contralateral."
+      },
+      {
+        q: "Qual é a distinção clínica entre Neurônio Motor Superior (NMS) e Neurônio Motor Inferior (NMI) quanto ao tônus, reflexos e atrofia?",
+        opts: ["NMS: hipotonia, arreflexia, atrofia grave; NMI: espasticidade, hiperreflexia, sem atrofia","NMS: espasticidade, hiperreflexia, Babinski +, sem atrofia significativa; NMI: hipotonia, arreflexia, fasciculações, atrofia","NMS e NMI: ambos causam flacidez e atrofia idênticas","NMS: clonus e fasciculações; NMI: espasticidade e sinal de Babinski"],
+        correct: 1,
+        exp: "<strong>NMS</strong> (córtex/trato corticoespinal): espasticidade (hipertonia com fenômeno do canivete), hiperreflexia, sinal de Babinski, clônus, sem atrofia significativa. <strong>NMI</strong> (corno anterior/nervo periférico): hipotonia flácida, arreflexia/hiporreflexia, fasciculações, atrofia muscular neurogênica. Distinção fundamental para diagnóstico e prognóstico em fisioterapia neurológica."
+      },
+      {
+        q: "O cerebelo recebe informações sobre o movimento planejado do córtex via quais fibras e retorna ao córtex motor através de qual via?",
+        opts: ["Fibras trepadoras (do núcleo olivar inferior) → cerebelo → retorno direto ao trato corticoespinal","Fibras musgosas (do núcleo pontino) via pedúnculo cerebelar médio → cerebelo (córtex e núcleos profundos) → tálamo (VL) → córtex motor primário","Aferências espinocerebelares diretas → cerebelo → projeta ao tálamo anterior","Fibras paralelas → cerebelo → reticuloespinal → neurônio alfa"],
+        correct: 1,
+        exp: "O córtex motor projeta ao <strong>núcleo pontino</strong> (fibras corticopolontinas) → <strong>fibras musgosas</strong> via pedúnculo cerebelar médio → grânulos → fibras paralelas → células de Purkinje. As células de Purkinje inibem os <strong>núcleos cerebelares profundos</strong> (dentado, interpósito, fastigial) que projetam via tálamo VL ao córtex motor. Malha de comparação entre plano e execução."
+      },
+      {
+        q: "Os gânglios da base participam do controle motor em qual aspecto e qual é o papel da dopamina nesse sistema?",
+        opts: ["Coordenação cerebelar do equilíbrio; dopamina inibe o estriado","Seleção e supressão de ações motoras (seleção de programa motor); dopamina (via D1/D2) facilita a via direta e inibe a via indireta, promovendo movimento","Inibição reflexa espinal; dopamina ativa o núcleo subtalâmico","Controle oculomotor exclusivo; dopamina regula reflexo oculocefálico"],
+        correct: 1,
+        exp: "<strong>Via direta</strong> (estriado D1 → GPi inibido → tálamo desinibido → córtex): facilita movimento. <strong>Via indireta</strong> (estriado D2 → GPe → NST → GPi excitado → tálamo inibido): suprime movimento. A <strong>dopamina</strong> da substância negra facilita a via direta e inibe a indireta. Na Doença de Parkinson, perda de dopamina → hiper ativação do GPi → supressão excessiva do tálamo → bradicinesia, rigidez."
+      },
+      {
+        q: "O sinal de Babinski (extensão plantar ao estímulo do bordo lateral da planta) indica lesão de qual via e por qual mecanismo neurológico?",
+        opts: ["Lesão do NMI; perda do arco reflexo monossináptico","Lesão do NMS (trato corticoespinal); desinibição de respostas flexoras primitivas mediadas por interneurônios espinais","Lesão cerebelar; perda de coordenação dos flexores do pé","Lesão do trato espinocerebelar posterior; déficit proprioceptivo do pé"],
+        correct: 1,
+        exp: "<strong>O sinal de Babinski</strong> ocorre com lesão do trato corticoespinal (NMS). Normalmente, o córtex inibe respostas flexoras primitivas espinais. Sem essa inibição, o estímulo no bordo plantar ativa um padrão flexor primitivo (extensão do hálux, abertura dos dedos). É fisiológico em lactentes até ~18 meses (trato corticoespinal ainda em mielinização)."
+      },
+      {
+        q: "Qual é o papel dos neurônios motores gama (γ) no controle do tônus muscular?",
+        opts: ["Inervam as fibras extrafusais para contração direta do músculo","Inervam as fibras intrafusais do fuso neuromuscular, regulando a sensibilidade do fuso à deformação independentemente do comprimento muscular","Inibem o neurônio alfa via células de Renshaw","Conduzem o comando central ao cerebelo para comparação"],
+        correct: 1,
+        exp: "<strong>Os neurônios gama</strong> inervam as fibras intrafusais dos fusos neuromusculares (fibras de saco e de cadeia nuclear). Ao contrair as extremidades contráteis do fuso, mantêm a sensibilidade das terminações Ia mesmo quando o músculo encurta (coativação alfa-gama). Permitem ajuste contínuo do ganho reflexo — essencial para a regulação do tônus muscular."
+      },
+      {
+        q: "O trato reticuloespinal medial (pontoreticuloespinal) tem função facilitadora ou inibitória sobre os neurônios motores, e qual sua relevância clínica?",
+        opts: ["Exclusivamente inibitório; relevante na distonia","Predominantemente facilitador sobre extensores axiais e proximais; lesões do NMS destroem a inibição cortical sobre ele, contribuindo para a espasticidade extensora no membro inferior","Inibitório sobre flexores; lesão causa paraparesia flácida","Facilita exclusivamente os flexores cervicais"],
+        correct: 1,
+        exp: "<strong>O trato reticuloespinal medial</strong> (pontoreticular) é facilitador para extensores axiais. Normalmente, o córtex inibe o tronco encefálico via trato corticoreticular. Após lesão do NMS, esse freio é retirado, resultando em <strong>espasticidade de padrão extensor</strong> no membro inferior (padrão plegic gait). Relevante para entender o padrão motor pós-AVC."
+      },
+      {
+        q: "Em lesão do nervo radial no sulco espiral do úmero ('paralisia do sábado à noite'), qual seria o padrão motor e sensitivo esperado?",
+        opts: ["Garra ulnar com perda de sensibilidade no dedo mínimo","Queda do punho (wrist drop), perda de extensão dos dedos e hipoestesia no dorso do antebraço e mão lateral","Fraqueza do bíceps e hipoestesia no polegar (dermátomo C6)","Paralisia dos interósseos e perda do pinça fina"],
+        correct: 1,
+        exp: "<strong>O nervo radial</strong> no sulco espiral inerva os extensores do antebraço, punho e dedos (extensor carpi radialis, extensor digitorum, etc.). Lesão causa <strong>wrist drop</strong> (queda do punho) e incapacidade de extensão dos dedos. A sensibilidade está comprometida na face dorsolateral do antebraço e dorso da mão (1º–3º dedos). Músculos proximais (tríceps, braquiorradial) geralmente preservados."
+      },
+      {
+        q: "O que é a cocontração agonista-antagonista e qual sua relevância no controle motor e na reabilitação?",
+        opts: ["Ativação sequencial de agonista e antagonista; causa movimentos balísticos","Ativação simultânea de músculos antagonistas para rigidez articular, estabilidade e controle fino de movimentos — programada pelo cerebelo e gânglios da base","Ativação reflexa do antagonista pelo OTG do agonista","Inibição recíproca ativa para acelerar o movimento"],
+        correct: 1,
+        exp: "<strong>A cocontração</strong> estabiliza articulações contra cargas imprevisíveis, aumenta rigidez articular e melhora precisão (às custas de velocidade). É maior em aprendizes e em movimentos imprecisos. O cerebelo calibra o nível adequado de cocontração. Na reabilitação, treino de tarefas funcionais reduz cocontração desnecessária e melhora eficiência motora."
+      },
+      {
+        q: "Qual é a organização somatotópica do córtex motor primário (área 4 de Brodmann) e o que significa o 'homúnculo motor'?",
+        opts: ["Organização visceral; representa órgãos internos controlados pelo SNV","Representação corporal invertida no giro pré-central: face inferior lateral, membros superiores laterais, tronco medial, membros inferiores no hemisfério medial — com amplitudes proporcionais à demanda motora fina","Organização por tipo muscular (flexores superiores, extensores inferiores)","Representação sequencial por dermátomos cervicais a sacrais"],
+        correct: 1,
+        exp: "<strong>O homúnculo motor</strong> (Penfield e Rasmussen) representa o corpo no giro pré-central de forma invertida. A mão e o rosto têm representação desproporcional por sua demanda motora fina. A área da mão corresponde ao knob motor (Ω-shaped). Essa organização guia a avaliação de déficits motores pós-AVC: lesões superiores afetam MMII; lesões laterais, MMSS e face."
+      },
+      {
+        q: "Em qual fase do ciclo de marcha a atividade eletomiográfica do glúteo médio é máxima e por que isso é clinicamente relevante?",
+        opts: ["Fase de balanço terminal; para desacelerar o membro","Apoio inicial e médio (fase de apoio simples contralateral); estabiliza a pelve contralateral, evitando a queda (sinal de Trendelenburg)","Fase de pré-balanço; para propulsão","Duplo apoio inicial; para absorção de impacto"],
+        correct: 1,
+        exp: "<strong>O glúteo médio</strong> é maximamente ativo no apoio médio, quando suporta o peso corporal sobre um membro. Fraqueza causa o <strong>sinal de Trendelenburg</strong> (queda da pelve contralateral) ou sua compensação (marcha de Trendelenburg, inclinação do tronco ipsilateral). Avaliação essencial após artroplastia de quadril e em lesões do nervo glúteo superior (L4–S1)."
+      },
+      {
+        q: "O padrão motor sinérgico (sinergia de flexão do membro superior) pós-AVC envolve quais componentes típicos e qual é sua base neurológica?",
+        opts: ["Extensão de cotovelo, pronação, abdução de ombro","Elevação/retração do ombro, abdução e rotação externa, flexão de cotovelo, supinação, flexão de punho e dedos","Adução de ombro, extensão de cotovelo, extensão de punho","Flexão de quadril com extensão de joelho e plantiflexão"],
+        correct: 1,
+        exp: "<strong>A sinergia flexora</strong> do MMSS pós-AVC reflete a liberação de padrões motores primitivos do tronco encefálico quando o controle cortical fracionado é perdido. Envolve elevação/retração do ombro, abdução, rotação externa, flexão de cotovelo, supinação e flexão de punho/dedos. A escala de Brunnstrom avalia a evolução desses padrões durante a reabilitação."
+      }
+    ]
+  },
+  {
+    id: 'cognitivo',
+    title: 'Funções Cognitivas',
+    icon: '◇',
+    iconBg: 'rgba(240,180,41,0.15)',
+    color: '#f0b429',
+    questions: [
+      {
+        q: "A memória de trabalho (working memory) é suportada principalmente por qual estrutura cortical e qual é sua capacidade?",
+        opts: ["Hipocampo; capacidade ilimitada","Córtex pré-frontal dorsolateral (DLPFC); capacidade limitada (~7±2 itens por Miller) com duração de segundos a minutos sem ensaio","Cerebelo; capacidade de 3 itens com duração de horas","Giro temporal superior; armazena linguagem por dias"],
+        correct: 1,
+        exp: "<strong>A memória de trabalho</strong> é um sistema de capacidade limitada que mantém e manipula informações ativamente. O modelo de Baddeley inclui: executivo central (DLPFC), alça fonológica (Broca/área supramarginal), bloco visuoespacial (parietal direito) e retentor episódico. Fundamental para raciocínio, planejamento e compreensão — comprometida em lesões pré-frontais e Alzheimer."
+      },
+      {
+        q: "O córtex parietal posterior (áreas 5 e 7 de Brodmann) integra informações sensoriomotoras para qual função cognitiva?",
+        opts: ["Produção da linguagem verbal","Reconhecimento de faces e objetos","Atenção visuoespacial, construção de representações do espaço extrapessoal e guia de movimentos dirigidos a alvos","Regulação do humor e emoções"],
+        correct: 2,
+        exp: "<strong>O córtex parietal posterior</strong> integra tato, visão e propriocepção para criar representações espaciais do corpo e do ambiente. Lesões do hemisfério direito causam <strong>negligência espacial unilateral</strong> (heminegligência contralateral — síndrome de desatenção ao hemiespaço esquerdo). Crítico para navegação, alcance de objetos e tarefas viso-construcionais."
+      },
+      {
+        q: "O que é apraxia ideomotora e em qual região cortical tipicamente ocorre lesão que a causa?",
+        opts: ["Incapacidade de reconhecer objetos; lesão do lobo temporal","Incapacidade de executar movimentos gestuais aprendidos sob comando verbal, com execução espontânea preservada; lesão do lobo parietal esquerdo ou das conexões calosas","Incapacidade de iniciar movimentos; lesão do lobo frontal medial (AMS)","Perda de coordenação fina; lesão cerebelar"],
+        correct: 1,
+        exp: "<strong>Apraxia ideomotora</strong>: o paciente sabe o que fazer mas não consegue executar o gesto sob comando (ex.: 'mostrar como usar uma tesoura'). Ocorre por lesão no lobo parietal inferior esquerdo (giro supramarginal, área 40) ou nas vias calosas. A execução espontânea pode ser melhor que a solicitada. Importante na avaliação funcional em fisioterapia e terapia ocupacional."
+      },
+      {
+        q: "A negligência espacial unilateral (heminegligência) após AVC de hemisfério direito envolve principalmente qual lobo e qual mecanismo atencional?",
+        opts: ["Lobo frontal esquerdo; perda de atenção seletiva auditiva","Junção temporoparietal direita (JTP) e córtex parietal posterior; falha na orientação da atenção para o hemiespaço esquerdo","Lobo occipital direito; déficit de processamento visual primário","Lobo temporal direito; comprometimento da memória de curto prazo"],
+        correct: 1,
+        exp: "<strong>A JTP direita</strong> é o nó crítico da rede atencional dorsal e ventral. Lesões causam falha catastrófica na reorientação atencional para o hemiespaço contralateral. O paciente não percebe estímulos à esquerda (corpo, espaço, papel). Testes: bisseção de linha, desenho do relógio, cancelamento de letras. A reabilitação usa prismas, varredura visual sistemática e estimulação sensorial."
+      },
+      {
+        q: "O que é agnosia visual aperceptiva e como difere da agnosia visual associativa?",
+        opts: ["Aperceptiva: reconhece o objeto mas não sabe nomeá-lo; Associativa: não forma percepção visual básica","Aperceptiva: falha na percepção básica do objeto (não copia, não combina formas); Associativa: percepção normal mas falha em associar à memória semântica (não reconhece, mas pode copiar)","Aperceptiva: cegueira cortical total; Associativa: incapacidade de processar cor","Aperceptiva: lesão do NC II; Associativa: lesão do tálamo"],
+        correct: 1,
+        exp: "<strong>Agnosia aperceptiva</strong>: lesão das áreas visuais secundárias (V2–V4); o paciente não forma representação perceptual coerente — não copia desenhos nem combina formas. <strong>Agnosia associativa</strong>: percepção intacta mas sem acesso ao conhecimento semântico — copia perfeitamente mas não reconhece o objeto. Ambas ocorrem com córtex visual intacto e acuidade visual preservada."
+      },
+      {
+        q: "Qual é o conceito de plasticidade neuronal dependente de uso e sua importância para a neuroreabilitação?",
+        opts: ["Perda irreversível de neurônios após lesão","Capacidade do SNC de modificar estrutura e função sináptica em resposta a experiências e prática, fundamentando a recuperação funcional após lesão neurológica","Regeneração de axônios periféricos à taxa de 1 mm/dia","Substituição de neurônios mortos por glias"],
+        correct: 1,
+        exp: "<strong>A plasticidade dependente de uso</strong> (Hebb: 'neurons that fire together, wire together') inclui: LTP, LTD, brotamento axonal, reorganização cortical somatotópica e neurogênese hipocampal. Em reabilitação, princípios derivados incluem: alta intensidade de prática, especificidade de tarefa, prática mental, estimulação sensorial e enriquecimento ambiental — todos potencializam a plasticidade adaptativa."
+      },
+      {
+        q: "O teste de trilhas (Trail Making Test) partes A e B avalia quais funções cognitivas respectivamente?",
+        opts: ["Memória verbal (A) e visuoespacial (B)","Velocidade de processamento e atenção sustentada (A); flexibilidade cognitiva e atenção alternada (B)","Linguagem expressiva (A) e compreensão (B)","Praxia construtiva (A) e memória de trabalho (B)"],
+        correct: 1,
+        exp: "<strong>Trail Making Test A</strong>: conectar números em ordem (1–25) → velocidade de processamento, atenção sustentada e varredura visual. <strong>TMT-B</strong>: alternar números e letras (1–A–2–B...) → flexibilidade cognitiva, set-shifting e atenção alternada (função executiva). A diferença B–A isola a componente executiva. Sensível a lesões frontais, TCE e demências."
+      },
+      {
+        q: "O que é síndrome do lobo frontal e quais são suas manifestações clínicas relevantes para a fisioterapia?",
+        opts: ["Perda de memória de longa duração com preservação de memória de trabalho","Comprometimento do planejamento, iniciação e monitoramento de ações, com impulsividade, perseveração, desinibição e dificuldade em adaptar estratégias — impactando diretamente a adesão e o aprendizado motor","Déficits puramente motores sem componente cognitivo","Síndrome exclusivamente caracterizada por apraxia da marcha"],
+        correct: 1,
+        exp: "<strong>A síndrome do lobo frontal</strong> afeta as funções executivas: planejamento, iniciação, flexibilidade cognitiva, controle inibitório e monitoramento. Em fisioterapia, isso impacta na capacidade do paciente de aprender novas tarefas motoras, seguir sequências de exercícios, manter atenção e se adaptar a feedback. Requer abordagens estruturadas, pistas externas e divisão em subtarefas."
+      },
+      {
+        q: "Qual é a diferença entre memória implícita e explícita, e quais estruturas neurais suportam cada uma?",
+        opts: ["Explícita: automática, inconsciente; hipocampo. Implícita: consciente, declarativa; córtex pré-frontal","Explícita (declarativa): consciente, episódica/semântica, hipocampo + córtex entorrinal + córtex temporal. Implícita (não-declarativa): inconsciente, inclui memória procedural (estriado + cerebelo), condicionamento (amígdala) e priming (neocórtex)","Explícita: procedural, estriado; Implícita: emocional, amígdala","Explícita: cerebelo e tronco; Implícita: hipocampo e amígdala"],
+        correct: 1,
+        exp: "<strong>Memória explícita</strong> requer atenção e consciência; depende do hipocampo e do lobo temporal medial. <strong>Memória implícita</strong> é adquirida automaticamente: procedural (estriado + cerebelo — relevante para aprendizagem motora), condicionamento clássico (amígdala), priming (neocórtex). Na fisioterapia, pacientes com amnésia hipocampal podem aprender habilidades motoras (implícita) mesmo sem lembrar as sessões."
+      },
+      {
+        q: "O que é apraxia da marcha e quais são suas causas neurológicas mais comuns?",
+        opts: ["Paralisia flácida bilateral dos MMII por lesão medular sacral","Incapacidade de iniciar e manter a marcha apesar de força e sensibilidade intactas, por lesão do córtex frontal medial ou doenças da substância branca profunda (hidrocefalia NPH, doença de Binswanger)","Desequilíbrio por lesão cerebelar com ataxia de marcha","Espasticidade bilateral dos MMII por lesão medular torácica"],
+        correct: 1,
+        exp: "<strong>Apraxia da marcha</strong>: passos curtos e arrastados, base alargada, 'magnetic gait' — os pés parecem colados ao chão. Causas: hidrocefalia de pressão normal (NPH — tríade: marcha, cognição e incontinência), doença cerebrovascular de pequenos vasos (lacunas frontais), DLB. Importante: força, sensibilidade e coordenação estão preservadas. Tratamento da hidrocefalia (shunt) pode reverter a marcha."
+      },
+      {
+        q: "A atenção sustentada (vigilância) depende principalmente de qual sistema de neurotransmissão e qual estrutura do tronco encefálico?",
+        opts: ["Sistema serotonérgico; núcleos da rafe mediano","Sistema noradrenérgico; locus coeruleus (LC) — projeções difusas ao córtex via fascículo longitudinal dorsal","Sistema dopaminérgico; VTA e substância negra","Sistema colinérgico; núcleo motor dorsal do vago"],
+        correct: 1,
+        exp: "<strong>O locus coeruleus</strong> (LC), principal fonte noradrenérgica do SNC, projeta difusamente para o córtex, hipocampo e cerebelo, modulando arousal e atenção sustentada. A teoria de Aston-Jones propõe que o LC regula o modo exploratório vs. explotativo. A clonidina (agonista α2) e atomoxetina (ISRN) modulam esse sistema, usados no TDAH."
+      },
+      {
+        q: "O que é a síndrome de desconexão calosa e quais são suas manifestações clínicas observáveis?",
+        opts: ["Incapacidade de compreender linguagem; causada por lesão de Wernicke bilateral","Impossibilidade de transferir informações entre os hemisférios: alexia sem agrafia no hemicampo esquerdo, apraxia ideomotora do lado esquerdo, anomia tátil da mão esquerda — após lesão do corpo caloso","Paralisia bilateral do membro superior; lesão da área motora suplementar","Incapacidade de memória de trabalho bilateral; lesão do DLPFC"],
+        correct: 1,
+        exp: "<strong>Síndrome de desconexão calosa</strong> (split-brain): informação apresentada ao hemicampo visual esquerdo (hemisfério direito) não alcança o hemisfério esquerdo (linguagem), causando anomia e alexia do hemicampo esquerdo. A mão esquerda pode executar tarefas visomotoras que o paciente não consegue verbalizar. Clássico em casos de calosotomia para epilepsia refratária."
+      }
+    ]
+  },
+  {
+    id: 'superiores',
+    title: 'Funções Mentais Superiores',
+    icon: '◈',
+    iconBg: 'rgba(45,212,191,0.15)',
+    color: '#2dd4bf',
+    questions: [
+      {
+        q: "O que é a teoria da especialização hemisférica ('lateralização') e quais funções são tipicamente dominantes no hemisfério esquerdo?",
+        opts: ["Especialização exclusiva do hemisfério direito para linguagem e raciocínio lógico","Dominância do hemisfério esquerdo para linguagem, fala e sequências motoras em ~96% dos destros; hemisfério direito para prosódia, percepção visuoespacial e processamento holístico","Processos idênticos em ambos os hemisférios sem lateralização funcional","Dominância do hemisfério direito para todos os processos cognitivos de alto nível"],
+        correct: 1,
+        exp: "<strong>A lateralização hemisférica</strong>: hemisfério <strong>esquerdo</strong> → linguagem, leitura, escrita, cálculo aritmético, raciocínio analítico sequencial (em ~96% dos destros e ~70% dos sinistros). Hemisfério <strong>direito</strong> → prosódia emocional, reconhecimento de faces, percepção espacial, processamento holístico, criatividade. A lateralização não é absoluta — há variação individual e bilateral."
+      },
+      {
+        q: "O que é consciência no contexto das neurociências e quais teorias contemporâneas buscam explicar sua base neural?",
+        opts: ["A consciência é gerada exclusivamente pelo sistema límbico, sem correlatos corticais","Processo neural ainda sem correlato definido, mas principais teorias incluem: Teoria da Informação Integrada (Tononi — phi), Espaço de Trabalho Global (Baars/Dehaene — difusão de atividade para redes fronto-parietais) e Teorias de Ordem Superior","A consciência é produto exclusivo do córtex visual primário","Gerada pelo cerebelo; dano cerebelar elimina a consciência"],
+        correct: 1,
+        exp: "<strong>Teorias contemporâneas da consciência</strong>: (1) <strong>IIT (Tononi)</strong>: consciência ∝ integração de informação (φ) — sistemas com alta integração são conscientes; (2) <strong>Espaço de Trabalho Global (Dehaene)</strong>: a consciência emerge quando ativações locais são difundidas via redes fronto-parietais de longa distância, tornando a informação globalmente disponível; (3) Teorias de ordem superior: representações meta-cognitivas."
+      },
+      {
+        q: "O que é a síndrome de Anton (anosognosia visual) e qual é seu substrato neurológico?",
+        opts: ["Incapacidade de reconhecer rostos conhecidos; lesão do giro fusiforme","Cegueira cortical com negação do déficit: o paciente nega estar cego, confabulando experiências visuais; lesão bilateral do córtex visual occipital com comprometimento das áreas de monitoramento frontal","Hemianopsia homônima com consciência do déficit; lesão da radiação óptica","Agnosia de cores isolada; lesão de V4"],
+        correct: 1,
+        exp: "<strong>Síndrome de Anton</strong>: após lesão bilateral das áreas visuais primárias (AVC da artéria cerebral posterior bilateral), o paciente tem cegueira cortical mas nega ativamente o déficit, confabulando cenas visuais detalhadas. Mecanismo: perda do feedback visual ao córtex frontal de monitoramento; o sistema de monitoramento não detecta o erro (anosognosia). Relevante para entender compliance em reabilitação."
+      },
+      {
+        q: "O que é teoria da mente (ToM) e quais são as estruturas neurais envolvidas em seu processamento?",
+        opts: ["Capacidade de compreender leis da física aplicadas ao comportamento humano; envolve o cerebelo","Capacidade de atribuir estados mentais (crenças, intenções, emoções) a outros — base para empatia cognitiva; rede neural inclui junção temporoparietal (JTP), córtex pré-frontal medial (mPFC) e sulco temporal superior (STS)","Memória semântica sobre teorias científicas; hipocampo e giro parahipocampal","Capacidade de linguagem metafórica; áreas de Broca e Wernicke"],
+        correct: 1,
+        exp: "<strong>Teoria da Mente</strong> (Baron-Cohen, Premack & Woodruff): capacidade de compreender que outros têm crenças, desejos e intenções diferentes das nossas. A rede neural inclui: <strong>JTP</strong> (atribuição de agência e estados mentais), <strong>mPFC</strong> (raciocínio sobre crenças), <strong>STS</strong> (análise de movimentos biológicos e intenções) e pólo temporal. Comprometida no autismo e em lesões frontais."
+      },
+      {
+        q: "O que diferencia a aprendizagem declarativa da aprendizagem procedural no contexto da neuroreabilitação motora?",
+        opts: ["São processos idênticos, ambos dependentes do hipocampo","Declarativa: explícita, verbal, consciente, dependente do hipocampo — facilita aprendizagem inicial pela instrução verbal. Procedural: implícita, inconsciente, dependente do estriado e cerebelo — requer prática repetida e é mais duradoura e automática","Procedural é mais rápida e consciente; declarativa é mais lenta e automática","Declarativa depende do cerebelo; procedural depende do hipocampo"],
+        correct: 1,
+        exp: "Na reabilitação motora: a fase inicial usa aprendizagem <strong>declarativa</strong> (instrução verbal, atenção consciente à tarefa — processamento pelo hipocampo/PFC). Com prática, a habilidade se torna <strong>procedural</strong> (automática, estriato-cerebelar). Pacientes com amnésia declarativa (lesão hipocampal) ainda podem adquirir habilidades procedurais. Implicação: variar feedback extrínseco conforme a fase de aprendizagem."
+      },
+      {
+        q: "O que é metacognição e qual seu substrato neural central?",
+        opts: ["Cognição sobre objetos físicos; parietal posterior","Pensamento sobre o próprio pensamento — monitoramento e controle dos processos cognitivos; córtex pré-frontal (VLPFC e DLPFC) e córtex cingulado anterior (ACC)","Memória de procedimentos complexos; estriado ventral","Processamento de linguagem de alto nível; área de Wernicke"],
+        correct: 1,
+        exp: "<strong>Metacognição</strong>: 'pensar sobre o pensar' — capacidade de monitorar a própria performance, avaliar confiança em respostas e ajustar estratégias. O <strong>córtex pré-frontal rostrolateral</strong> (área 10) e o <strong>cingulado anterior</strong> são centrais. Comprometida no TCE, Alzheimer e esquizofrenia. Em fisioterapia, afeta a capacidade de perceber e relatar déficits, impactando a adesão e o automonitoramento."
+      },
+      {
+        q: "A síndrome do estranho alheio (Alien Hand Syndrome) é caracterizada por qual fenômeno e qual é sua causa?",
+        opts: ["Alucinação da própria mão; lesão do lobo parietal direito","Ações involuntárias e propositadas de uma mão, como se independente da vontade, com o paciente incapaz de controlá-la; lesão do corpo caloso anterior ou do córtex frontal medial (AMS)","Paresia unilateral com espasticidade; lesão da cápsula interna","Tremor de repouso unilateral; lesão da substância negra"],
+        correct: 1,
+        exp: "<strong>Alien Hand Syndrome</strong>: a mão realiza movimentos complexos involuntários (apreende objetos, se opõe a intenções) que o paciente não reconhece como próprios. Causa: lesão do <strong>corpo caloso anterior</strong> (desconexão inter-hemisférica) e/ou <strong>AMS</strong> (perda do controle intencional frontal). Descrito classicamente em calosotomia, infarto da ACA e cirurgia do corpo caloso."
+      },
+      {
+        q: "O que é o estado vegetativo persistente e como se distingue do estado de consciência mínima (minimally conscious state – MCS)?",
+        opts: ["Estado vegetativo: ausência de sono-vigília; MCS: coma profundo","Estado vegetativo: ciclo sono-vigília preservado mas sem evidência reproduzível de consciência; MCS: evidências mínimas mas reproduzíveis de consciência (seguimento visual, localização da dor, resposta a comandos)","Estado vegetativo: resposta verbal preservada; MCS: sem resposta motora","Ambos idênticos; distinção apenas prognóstica"],
+        correct: 1,
+        exp: "<strong>Estado Vegetativo (EV)</strong>: arousal preservado (abre olhos), mas sem evidência consistente de consciência — reflexos presentes, sem resposta proposital reproduzível. <strong>Estado de Consciência Mínima (ECM)</strong>: comportamentos mínimos mas reproduzíveis de consciência — seguimento visual, localização de estímulos dolorosos, resposta a comandos simples. Distinção crítica para prognóstico e tomada de decisão em reabilitação."
+      },
+      {
+        q: "O que é o fenômeno de sinestesia e qual é sua base neurológica proposta?",
+        opts: ["Perda de sentidos após lesão cortical","Experiência automática e involuntária de um sentido ao estimular outro (ex.: ouvir sons ao ver cores); proposta de hiper-conectividade ou desinibição entre áreas corticais adjacentes (ex.: V4 e área auditiva; V8 e área de linguagem)","Confusão entre memória episódica e semântica","Sensação de dormência em membro fantasma"],
+        correct: 1,
+        exp: "<strong>Sinestesia</strong>: resposta sensorial cruzada (grafema-cor, música-cor, número-forma). Afeta ~4% da população, com base genética. Mecanismos propostos: (1) <strong>conectividade estrutural aumentada</strong> entre áreas adjacentes (V4/V8 e área angular para grafema-cor); (2) <strong>desinibição funcional</strong> de conexões normalmente suprimidas. Não é patológica — associada a habilidades artísticas e memória verbal melhorada."
+      },
+      {
+        q: "O córtex cingulado anterior (ACC) participa de quais funções mentais superiores?",
+        opts: ["Percepção visual de baixo nível e reflexos oculomotores","Detecção de conflito/erro (via potencial N2 e ERN), regulação emocional, atenção executiva, motivação e modulação da percepção de dor — atuando como interface cognição-emoção","Sequenciamento motor dos membros inferiores e controle da marcha","Consolidação de memórias declarativas e formação de novas sinapses"],
+        correct: 1,
+        exp: "<strong>O ACC</strong> (área 24, 32, 33) é dividido em porção dorsal (cognitiva — detecta conflito, monitoramento de erro, atenção executiva) e ventral (afetiva — regulação emocional, percepção de dor, motivação). O ACC dorsal ativa-se no Stroop, em tarefas de tomada de decisão sob conflito e no processamento de dor social. É hipoativo na depressão e hiperativo no TOC."
+      },
+      {
+        q: "O que é a hipótese do marcador somático de Damasio e sua aplicação clínica na fisioterapia?",
+        opts: ["Hipótese sobre a localização da consciência no tronco encefálico","Estados somáticos (sensações corporais) são associados a resultados de decisões passadas, funcionando como 'sinaleiros' emocionais que orientam a tomada de decisão racional — mediado pelo vmPFC e ínsula","Teoria sobre a origem da dor referida nos órgãos internos","Modelo de processamento sensorial da dor crônica no corno posterior"],
+        correct: 1,
+        exp: "<strong>A hipótese do marcador somático</strong> (Damasio, 1994): experiências passadas geram marcadores somáticos (sensações corporais de prazer/desprazer) armazenados no vmPFC que orientam decisões futuras sem análise consciente completa. Pacientes com lesão vmPFC tomam decisões ruins mesmo com cognição intacta (Jogo de Iowa). Relevante na fisioterapia para entender motivação, adesão ao tratamento e comportamento de dor crônica."
+      },
+      {
+        q: "O que é o córtex de associação heteromodal e quais são seus exemplos na arquitetura cortical?",
+        opts: ["Córtex que responde exclusivamente a uma modalidade sensorial","Regiões corticais que integram múltiplas modalidades sensoriais, representações conceituais e processos cognitivos de alto nível — exemplos: lobo parietal inferior (áreas 39/40), córtex pré-frontal (áreas 9/10/46), lobo temporal inferior (áreas 36/38)","Córtex motor primário que controla múltiplos grupos musculares","Córtex que processa apenas entrada subcortical talâmica"],
+        correct: 1,
+        exp: "<strong>Córtex heteromodal de associação</strong>: recebe entradas de múltiplas modalidades sensoriais e áreas de associação unimodal. Engloba: (1) lobo parietal inferior (linguagem, praxia, atenção espacial); (2) lobo frontal prefrontal (cognição executiva, memória de trabalho); (3) lobo temporal inferior e pólo temporal (memória semântica, reconhecimento facial). Última região mielinizada e última a amadurecer ontogeneticamente."
+      }
+    ]
+  },
+  {
+    id: 'fala',
+    title: 'Fala e Linguagem',
+    icon: '◎',
+    iconBg: 'rgba(240,180,41,0.15)',
+    color: '#f0b429',
+    questions: [
+      {
+        q: "A afasia de Broca é caracterizada por qual padrão linguístico e qual é sua localização lesional?",
+        opts: ["Fluência verbal preservada com déficit de compreensão; lesão do giro temporal superior esquerdo","Fala não fluente, laboriosa, telegráfica, com agramatismo e comprometimento da repetição; compreensão relativamente preservada; lesão do giro frontal inferior esquerdo (área 44 e 45 de Brodmann) — opérculo frontal","Ecolalia e palilalia com preservação da repetição; lesão subcortical","Déficit de nomeação isolado com fluência preservada; lesão da região posterior da área de Broca"],
+        correct: 1,
+        exp: "<strong>Afasia de Broca</strong>: não fluente, agramática, com pausa e esforço articulatório. A compreensão auditiva simples é relativamente preservada, mas frases gramaticalmente complexas são difíceis. A lesão envolve o <strong>opérculo frontal</strong> (áreas 44/45 — área de Broca) e geralmente se estende à ínsula e à coroa radiante. Repetição comprometida. Pacientes frequentemente têm consciência do déficit, causando frustração."
+      },
+      {
+        q: "A afasia de Wernicke apresenta qual padrão e qual é a localização da lesão?",
+        opts: ["Fala não fluente com compreensão preservada; lesão da região parietal posterior","Fala fluente, jargonafasia, parafasias semânticas e fonêmicas, comprometimento grave da compreensão e repetição; lesão do giro temporal superior posterior esquerdo (área 22 — área de Wernicke)","Mutismo total com compreensão preservada; lesão bilateral do giro frontal inferior","Fala fluente com preservação de compreensão e repetição; lesão subcortical"],
+        correct: 1,
+        exp: "<strong>Afasia de Wernicke</strong>: fala fluente e abundante mas com parafasias (semânticas: 'cadeira' por 'mesa'; fonêmicas: 'cama' por 'cama'), neologismos e jargão. Compreensão auditiva e repetição gravemente comprometidas. A lesão envolve a <strong>área de Wernicke</strong> (área 22, giro temporal superior posterior esquerdo). Pacientes frequentemente sem consciência do déficit (anosognosia)."
+      },
+      {
+        q: "O fascículo arqueado conecta quais áreas cerebrais e qual é sua relevância para a linguagem?",
+        opts: ["Conecta o hipocampo ao córtex pré-frontal; relacionado à memória verbal de longo prazo","Conecta a área de Wernicke (temporal posterior) à área de Broca (frontal inferior), sendo essencial para a repetição e a análise fonológica","Conecta o tálamo ao córtex motor primário; relacionado ao controle articulatório","Conecta o córtex visual ao lobo frontal; relacionado ao processamento da linguagem escrita"],
+        correct: 1,
+        exp: "<strong>O fascículo arqueado</strong> (parte do feixe longitudinal superior) conecta a área de Wernicke ao opérculo frontal (Broca). Sua lesão causa <strong>afasia de condução</strong>: fluência preservada, compreensão relativamente intacta, mas repetição gravemente comprometida com muitas parafasias fonêmicas — o paciente percebe o erro e tenta se corrigir (conduta de aproximação)."
+      },
+      {
+        q: "A disartria difere da afasia em quais aspectos fundamentais?",
+        opts: ["Disartria: déficit de linguagem cognitiva; afasia: déficit motor da fala","Disartria: distúrbio motor da execução articulatória (com linguagem preservada) por lesão do trato corticoespinal, cerebelo, nervos cranianos ou gânglios da base; Afasia: distúrbio do processamento linguístico central por lesão cortical","Disartria é exclusiva de lesão cerebelar; afasia ocorre em lesões de qualquer lobo","Ambos são sinônimos de comprometimento da comunicação por lesão central"],
+        correct: 1,
+        exp: "<strong>Afasia</strong>: distúrbio da linguagem (processamento de símbolos linguísticos) por lesão cortical hemisférica esquerda. <strong>Disartria</strong>: distúrbio da <em>execução motora</em> da fala — articulação imprecisa, prosódia alterada, voz anormal — mas a linguagem interna está intacta. Tipos: espástica (NMS), flácida (NMI/nervos cranianos), atáxica (cerebelo), hipercinética e hipocinética (gânglios da base — Parkinson)."
+      },
+      {
+        q: "A apraxia da fala (apraxia verbal) se caracteriza por qual padrão e por lesão em qual região?",
+        opts: ["Fala fluente e sem esforço com parafasias semânticas; lesão temporal","Inconsistência de erros articulatórios, tentativas e erros (groping), distorções fonêmicas e prosódia anormal, com estruturas linguísticas e musculatura oral preservadas; lesão da área de Broca e ínsula esquerda","Hiperfluência com jargão e neologismos; lesão da área de Wernicke","Mutismo e rigidez muscular; lesão bilateral dos nervos cranianos motores"],
+        correct: 1,
+        exp: "<strong>Apraxia da fala</strong>: déficit no planejamento/programação dos movimentos articulatórios para sons sequenciais, com força, tônus e reflexos orais intactos. Os erros são inconsistentes, piores em palavras longas e polissílabas, com esforço visível. Difere da disartria (erros consistentes e previsíveis) e da afasia (linguagem comprometida). Lesão: área de Broca (área 44) e ínsula anterior esquerda."
+      },
+      {
+        q: "Qual é o modelo de processamento neural da linguagem de Hickok e Poeppel (dual-stream model)?",
+        opts: ["Modelo serial: apenas via ventral processa linguagem, da percepção à semântica, em sequência unidirecional","Modelo de dois fluxos: via dorsal (temporal posterior → parietal → frontal) para mapeamento som-motor e repetição; via ventral (temporal posterior → temporal inferior → frontal) para processamento semântico e compreensão","Modelo de único processador central no giro temporal superior com projeções bidirecionais","Modelo de três vias: dorsal para sintaxe, ventral para semântica e mesial para prosódia"],
+        correct: 1,
+        exp: "<strong>Dual Stream (Hickok & Poeppel)</strong>: <strong>via dorsal</strong> (sulco temporal superior → córtex parietal inferior → área de Broca): interface sensório-motora — essencial para repetição, produção de fala e análise fonológica; dominante à esquerda. <strong>Via ventral</strong> (sulco temporal superior → córtex temporal inferior → córtex pré-frontal): mapeamento som-significado — bilateral, mas com dominância esquerda para linguagem."
+      },
+      {
+        q: "A prosódia emocional (entonação afetiva da fala) é processada predominantemente em qual hemisfério cerebral?",
+        opts: ["Hemisfério esquerdo junto com a linguagem proposicional","Hemisfério direito, especialmente o giro temporal superior direito e o córtex frontal inferior direito","Bilateralmente com idêntica contribuição de ambos os hemisférios","No tronco encefálico, independentemente dos hemisférios"],
+        correct: 1,
+        exp: "<strong>A prosódia emocional</strong> (entonação, ritmo e melodia afetiva da fala) é dominantemente processada pelo <strong>hemisfério direito</strong>. Lesões do giro temporal superior direito causam déficit na percepção da prosódia emocional (aprosodia sensitiva), enquanto lesões do frontal direito causam dificuldade em expressar entonação emocional (aprosodia motora) — mesmo com linguagem proposicional preservada."
+      },
+      {
+        q: "A afasia transcortical motora se diferencia da afasia de Broca principalmente por qual característica preservada?",
+        opts: ["Preservação da compreensão auditiva","Preservação da repetição (via fascículo arqueado intacto), com redução da iniciativa verbal espontânea e fala não fluente","Preservação da nomeação e fluência verbal","Preservação da escrita com déficit de fala"],
+        correct: 1,
+        exp: "<strong>Afasia transcortical motora</strong>: fala espontânea reduzida/não fluente, mas repetição surpreendentemente preservada (e frequentemente ecolálica). Causa: lesão da área motora suplementar (AMS) ou da zona de borda entre as artérias cerebral anterior e média (zona de 'watershed' frontal) — o fascículo arqueado permanece intacto. Padrão oposto à afasia de condução."
+      },
+      {
+        q: "Na avaliação de pacientes com afasia em fisioterapia, quais são estratégias de comunicação aumentativa e alternativa (CAA) que podem ser utilizadas?",
+        opts: ["Apenas a linguagem oral deve ser estimulada; não usar suporte visual","Sistemas de símbolos pictográficos (PECS, Boardmaker), gestos codificados, dispositivos geradores de voz, comunicação escrita por letras e tecnologia de rastreamento ocular — adaptados ao perfil linguístico e motor do paciente","Fisioterapia não deve intervir em linguagem, deixando exclusivamente para fonoaudiologia","Apenas o sinal gestual (Libras) pode ser usado como alternativa"],
+        correct: 1,
+        exp: "<strong>Comunicação Aumentativa e Alternativa (CAA)</strong> em pacientes neurológicos: pranchas de comunicação pictográfica, aplicativos (Grid, Proloquo2Go), gestos e sinais convencionais, escrita manual ou digital, rastreamento ocular e BCI (para pacientes com ELA). Em fisioterapia, a comunicação efetiva é essencial para instruções de exercício, avaliação da dor e estabelecimento de metas — requer treinamento interdisciplinar."
+      },
+      {
+        q: "A dislexia do desenvolvimento envolve déficits em qual processo cognitivo fundamental, segundo a pesquisa neurociência atual?",
+        opts: ["Déficit primário de memória visual e reconhecimento de letras","Déficit no processamento fonológico (consciência fonológica, codificação fonológica na memória de trabalho e recuperação de nomes) associado a diferenças na conectividade da via dorsal e nas regiões parieto-temporais e occipito-temporais esquerdas","Déficit de atenção seletiva sem componente linguístico específico","Déficit visual isolado causado por instabilidade de fixação ocular"],
+        correct: 1,
+        exp: "<strong>A dislexia do desenvolvimento</strong> tem como déficit central a <strong>consciência fonológica</strong> — dificuldade em manipular segmentos sonoros da linguagem (fonemas, sílabas). Neuroimagem (fMRI): hipoativação do giro angular e do giro temporal superior posterior esquerdos (via dorsal/fonológica). Leitura eficiente requer a rota sublexical (decodificação fonema-grafema) e a rota lexical (reconhecimento ortográfico direto — via ventral occipitotemporal)."
+      },
+      {
+        q: "O que é a síndrome de Williams e como ela ilustra a dissociação entre linguagem e cognição visuoespacial?",
+        opts: ["Síndrome com excelente cognição visuoespacial e grave déficit de linguagem; mutação no cromossomo 7","Síndrome com linguagem relativamente preservada (fluente, rico vocabulário, prosódia social exagerada) e grave comprometimento visuoespacial e cognitivo geral; deleção do cromossomo 7q11.23 (elastina e genes LIMK1)","Síndrome com afasia isolada sem déficits motores; mutação no gene FOXP2","Síndrome com hiperléxia e déficit de compreensão; sem base genética conhecida"],
+        correct: 1,
+        exp: "<strong>Síndrome de Williams</strong>: deleção de ~26 genes no cromossomo 7q11.23. Os indivíduos são altamente sociáveis, com linguagem fluente e musical, mas com grave déficit visuoespacial (não conseguem copiar figuras simples), déficit de memória de trabalho visuoespacial e cognição geral comprometida. Demonstra que linguagem e visuoespacial são módulos neurais relativamente independentes."
+      }
+    ]
+  }
+];
+
+// State
+let state = {
+  answers: {},
+  openCard: null
+};
+
+function init() {
+  const main = document.getElementById('main-content');
+  let html = '';
+  let qNum = 0;
+
+  categories.forEach(cat => {
+    html += `
+      <div class="category-header" data-cat="${cat.id}">
+        <div class="category-icon" style="background:${cat.iconBg};color:${cat.color}">${cat.icon}</div>
+        <div class="category-title">${cat.title}</div>
+        <div class="category-count">${cat.questions.length} questões</div>
+      </div>`;
+
+    cat.questions.forEach((q, qi) => {
+      qNum++;
+      const qid = `${cat.id}_${qi}`;
+      html += `
+        <div class="q-card" id="card_${qid}" data-cat="${cat.id}" data-qid="${qid}">
+          <div class="q-header" onclick="toggleCard('${qid}')">
+            <div class="q-number">Q${String(qNum).padStart(2,'0')}</div>
+            <div class="q-text">${q.q}</div>
+            <div class="q-status" id="status_${qid}"></div>
+            <div class="chevron">▼</div>
+          </div>
+          <div class="q-options" id="opts_${qid}">
+            ${q.opts.map((opt, oi) => `
+              <button class="opt-btn" id="opt_${qid}_${oi}" onclick="selectAnswer('${qid}', ${oi})" data-qid="${qid}" data-oi="${oi}">
+                <span class="opt-label">${String.fromCharCode(65+oi)}</span>
+                <span>${opt}</span>
+              </button>`).join('')}
+            <div class="explanation" id="exp_${qid}">${q.exp}</div>
+          </div>
+        </div>`;
+    });
+  });
+
+  main.innerHTML = html;
+  updateDashboard();
+}
+
+function getQuestion(qid) {
+  const [catId, qi] = qid.split('_');
+  const cat = categories.find(c => c.id === catId);
+  return cat ? cat.questions[parseInt(qi)] : null;
+}
+
+function toggleCard(qid) {
+  const card = document.getElementById(`card_${qid}`);
+  if (state.openCard && state.openCard !== qid) {
+    document.getElementById(`card_${state.openCard}`).classList.remove('open');
+  }
+  if (state.openCard === qid) {
+    card.classList.remove('open');
+    state.openCard = null;
+  } else {
+    card.classList.add('open');
+    state.openCard = qid;
+  }
+}
+
+function selectAnswer(qid, oi) {
+  if (state.answers[qid] !== undefined) return;
+
+  const q = getQuestion(qid);
+  if (!q) return;
+
+  state.answers[qid] = oi;
+  const correct = q.correct;
+  const card = document.getElementById(`card_${qid}`);
+
+  // Disable all options
+  for (let i = 0; i < q.opts.length; i++) {
+    const btn = document.getElementById(`opt_${qid}_${i}`);
+    btn.disabled = true;
+    if (i === oi && oi === correct) btn.classList.add('selected-correct');
+    else if (i === oi && oi !== correct) btn.classList.add('selected-wrong');
+    else if (i === correct) btn.classList.add('reveal-correct');
+  }
+
+  card.classList.add('answered');
+  if (oi === correct) card.classList.add('answered-correct');
+  else card.classList.add('answered-wrong');
+
+  updateDashboard();
+}
+
+function updateDashboard() {
+  const total = getAllQids().length;
+  const answered = Object.keys(state.answers).length;
+  let correct = 0, wrong = 0;
+
+  getAllQids().forEach(qid => {
+    if (state.answers[qid] !== undefined) {
+      const q = getQuestion(qid);
+      if (q && state.answers[qid] === q.correct) correct++;
+      else if (state.answers[qid] !== undefined) wrong++;
+    }
+  });
+
+  document.getElementById('cnt-correct').textContent = correct;
+  document.getElementById('cnt-wrong').textContent = wrong;
+  document.getElementById('cnt-pending').textContent = total - answered;
+
+  const pct = answered > 0 ? Math.round((correct / answered) * 100) : 0;
+  document.getElementById('score-display').textContent = answered > 0 ? `${pct}% (${answered}/${total} respondidas)` : `0/${total} respondidas`;
+  document.getElementById('progress-bar').style.width = ((answered / total) * 100) + '%';
+}
+
+function getAllQids() {
+  const ids = [];
+  categories.forEach(cat => {
+    cat.questions.forEach((q, qi) => ids.push(`${cat.id}_${qi}`));
+  });
+  return ids;
+}
+
+function filterCategory(catId, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  document.querySelectorAll('.q-card').forEach(card => {
+    card.style.display = (catId === 'all' || card.dataset.cat === catId) ? 'block' : 'none';
+  });
+
+  document.querySelectorAll('.category-header').forEach(h => {
+    h.style.display = (catId === 'all' || h.dataset.cat === catId) ? 'flex' : 'none';
+  });
+}
+
+function showResults() {
+  const total = getAllQids().length;
+  let correct = 0, wrong = 0, pending = 0;
+
+  getAllQids().forEach(qid => {
+    if (state.answers[qid] === undefined) {
+      pending++;
+    } else {
+      const q = getQuestion(qid);
+      if (q && state.answers[qid] === q.correct) correct++;
+      else wrong++;
+    }
+  });
+
+  const answered = correct + wrong;
+  const pct = answered > 0 ? Math.round((correct / answered) * 100) : 0;
+
+  document.getElementById('final-pct').textContent = pct + '%';
+  document.getElementById('final-c').textContent = correct;
+  document.getElementById('final-w').textContent = wrong;
+  document.getElementById('final-p').textContent = pending;
+
+  let msg = '';
+  if (pct >= 90) msg = 'Excelente! Desempenho muito acima da média. Domínio sólido do módulo de sistema nervoso.';
+  else if (pct >= 70) msg = 'Bom resultado! Demonstra compreensão consistente. Revise os tópicos errados para consolidar.';
+  else if (pct >= 50) msg = 'Resultado moderado. Recomenda-se revisão intensiva do Netter e das aulas do módulo.';
+  else msg = 'É necessário revisar o módulo com atenção. Consulte o Netter de Neurociência e os materiais da UNIFESP.';
+
+  document.getElementById('grade-msg').textContent = msg;
+  document.getElementById('results-panel').classList.add('show');
+}
+
+function restart() {
+  state = { answers: {}, openCard: null };
+  document.getElementById('results-panel').classList.remove('show');
+  document.querySelectorAll('.q-card').forEach(card => {
+    card.classList.remove('open','answered','answered-correct','answered-wrong');
+  });
+  document.querySelectorAll('.opt-btn').forEach(btn => {
+    btn.disabled = false;
+    btn.classList.remove('selected-correct','selected-wrong','reveal-correct');
+  });
+  document.querySelectorAll('.explanation').forEach(e => e.style.display = '');
+  updateDashboard();
+}
+
+init();
+</script>
+</body>
+</html>
